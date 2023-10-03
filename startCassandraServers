@@ -1,0 +1,49 @@
+#!/bin/bash
+
+if [ "$#" -ne "3" ]; then
+    echo "need 3 IPs for 3 cassandra servers"
+    exit 1
+fi
+
+# build the images
+docker build -t webserver -f Dockerfile.reader .;
+docker build -t cassandrawriter -f Dockerfile.writer .;
+# tag the images
+docker tag webserver benjaminwen/a2-webserver
+docker tag cassandrawriter benjaminwen/a2-cassandrawriter
+# push the images to prepare for swarm
+docker push benjaminwen/a2-webserver
+docker push benjaminwen/a2-cassandrawriter
+
+# leave swarm to prepare to init swarm
+docker swarm leave --force;
+# get the join token to use for other nodes
+JOINCOMMAND=$(docker swarm init --advertise-addr $1 | grep -ie "docker swarm join --token")
+# store the join token for future nodes joining
+echo $JOINCOMMAND > joincommand.txt
+
+MASTER="$1"
+while (( "$#" )); do
+        if [ "$1" = "$MASTER" ];
+        then
+                COMMAND="docker run --name cassandra-node -v /home/student/repo_a2group22/cassandra:/var/lib/cassandra -d --health-cmd='cqlsh' --health-interval=5s --health-start-period=2m --health-timeout=5s --health-retries=3 --restart always -e CASSANDRA_BROADCAST_ADDRESS=$1 -p 7000:7000 -p 9042:9042 cassandra" 
+                # this is the one for setting up container for master
+                ssh student@$1 "docker container stop cassandra-node; docker container rm cassandra-node; $COMMAND;"
+        else
+                COMMAND="docker run --name cassandra-node -v /home/student/cassandra:/var/lib/cassandra -d --health-cmd='cqlsh' --health-interval=5s --health-start-period=2m --health-timeout=5s --health-retries=3 --restart always -e CASSANDRA_BROADCAST_ADDRESS=$1 -p 7000:7000 -p 9042:9042 -e CASSANDRA_SEEDS=$MASTER cassandra" 
+                # this is for setting up container for none master
+                ssh student@$1 "docker container stop cassandra-node; docker container rm cassandra-node; $COMMAND; docker swarm leave --force; $JOINCOMMAND;"
+        fi
+        
+        while true;
+        do
+                sleep 5
+                STATUS=$(docker exec -it cassandra-node nodetool status | grep -e $1)
+                STATUSUN=$(echo $STATUS | grep -e "UN")
+                # echo $STATUS
+                [[ ! -z "$STATUSUN" ]] && break;
+        done;
+        shift
+done
+
+docker stack deploy --with-registry-auth -c docker-compose.yml urlshortener;

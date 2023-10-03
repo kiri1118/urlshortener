@@ -1,0 +1,39 @@
+<html>
+	<head>
+		<title>Video Gaming</title>
+	</head>
+	<body>
+		<h1>My Website</h1>
+		<form>
+			<div>
+				<label for="short">Short URL:</label>
+				<input type="text" id="short" name="short" />
+			</div>
+			<div>
+				<label for="long">Full URL:</label>
+				<input type="text" id="long" name="long" />
+				<p>Don't forget to include the URL protocol! (e.g. https://, http://)</p>
+			</div>
+		</form>
+		<button onclick="putURL()">Submit</button>
+	</body>
+	<script>
+		async function putURL() {
+			const short = encodeURIComponent(document.getElementById("short").value);
+			const long = document.getElementById("long").value;
+			if (short === "" || long === "") {
+				alert("Please fill in both inputs!");
+				return;
+			}
+			const res = await fetch(`${window.location.origin}/?short=${short}&long=${long}`, {
+				method: "PUT"
+			});
+			// rewrite html hahahhahahaha
+			// https://stackoverflow.com/a/64070046
+			const text = await res.text();
+			document.open();
+			document.write(text);
+			document.close();
+		}
+	</script>
+</html>

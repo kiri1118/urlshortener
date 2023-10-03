@@ -1,0 +1,13 @@
+#!/bin/bash
+
+if [ "$#" == "0" ]; then
+    echo "need at least 1 argument"
+    exit 1
+fi
+
+JOINCOMMAND=$(cat joincommand.txt)
+
+while (( "$#" )); do
+    ssh student@$1 "docker swarm leave --force; $JOINCOMMAND;"
+    shift
+done

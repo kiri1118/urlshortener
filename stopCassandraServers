@@ -1,0 +1,13 @@
+#!/bin/bash
+
+if [ "$#" -ne "3" ]; then
+    echo "need 3 IPs for 3 cassandra servers"
+	exit 1
+fi
+
+docker stack rm urlshortener;
+
+while (( "$#" )); do
+	ssh student@$1 "docker container stop cassandra-node; docker container rm cassandra-node; docker swarm leave --force;"
+	shift
+done

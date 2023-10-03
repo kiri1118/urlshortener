@@ -1,0 +1,97 @@
+version: "3.8"
+services:
+  web:
+    image: benjaminwen/a2-webserver
+    deploy:
+      restart_policy:
+        condition: any
+      mode: global
+    volumes:
+      - "webserver:/logs"
+    ports:
+      - "4000:80"
+    networks:
+      - UrlShortenernet
+    healthcheck:
+      test: curl -4 http://localhost:80
+      interval: 5s
+      timeout: 5s
+      retries: 3
+      start_period: 2m
+  cassandrawriter:
+    image: benjaminwen/a2-cassandrawriter
+    deploy:
+      restart_policy:
+        condition: any
+      mode: global
+    networks:
+      - UrlShortenernet
+    healthcheck:
+      test: echo ''
+      interval: 5s
+      timeout: 5s
+      retries: 3
+      start_period: 2m
+  visualizer:
+    image: dockersamples/visualizer:stable
+    ports:
+      - "8080:8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+    networks:
+      - UrlShortenernet
+  redis-master:
+    image: redis:latest
+    hostname: redis-master
+    volumes:
+      - "./data:/data"
+    ports:
+      - "6379:6379"
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+      restart_policy:
+        condition: any
+      resources:
+        limits:
+          memory: '50M'
+    healthcheck:
+      test: redis-cli info
+      interval: 5s
+      timeout: 5s
+      retries: 3
+      start_period: 2m
+    command: redis-server --appendonly yes
+    networks:
+      - UrlShortenernet
+  redis-slave:
+    image: redis:latest
+    hostname: redis-slave
+    ports:
+      - '6479:6479'
+    command: redis-server --slaveof redis-master 6379
+    networks:
+      - UrlShortenernet
+    deploy:
+      mode: global
+      placement:
+        constraints: [node.role == worker]
+      restart_policy:
+        condition: any
+      resources:
+        limits:
+          memory: '50M'
+    healthcheck:
+      test: redis-cli info
+      interval: 5s
+      timeout: 5s
+      retries: 3
+      start_period: 2m
+networks:
+  UrlShortenernet:
+volumes:
+  webserver:
+

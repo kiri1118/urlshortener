@@ -1,0 +1,20 @@
+#!/bin/bash
+
+if [ "$#" == "0" ]; then
+    echo "need at least 1 argument"
+    exit 1
+fi
+
+while (( "$#" )); do
+    ssh student@$1 "docker swarm leave --force;"
+
+    while true;
+    do
+            sleep 5
+            STATUS=$(docker node ls| grep -ie Down)
+            [[ ! -z "$STATUS" ]] && break;
+    done;
+    removedHost=$(ssh student@$1 hostname)
+    docker node rm $removedHost
+    shift
+done

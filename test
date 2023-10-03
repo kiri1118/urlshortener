@@ -1,0 +1,28 @@
+#!/bin/bash
+start=`date +%s%N | cut -b1-13`
+
+for i in {1..100}
+do
+    curl -4X PUT  "http://localhost:4000/?short=f&long=https://www.google.ca/" > /dev/null 2>&1 &
+done
+
+
+
+
+end=`date +%s%N | cut -b1-13`
+runtime=$((end-start))
+echo "100 PUT requests took $runtime milliseconds"
+
+start=`date +%s%N | cut -b1-13`
+
+for i in {1..100}
+do
+    curl -4X GET  "http://localhost:4000/f" > /dev/null 2>&1 &
+done
+
+
+
+
+end=`date +%s%N | cut -b1-13`
+runtime=$((end-start))
+echo "100 GET requests took $runtime milliseconds"

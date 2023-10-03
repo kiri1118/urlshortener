@@ -1,0 +1,16 @@
+#!/bin/bash
+while true
+do 
+    echo "MACHINE 10.11.1.118"
+    ssh 10.11.1.118 "docker ps"
+    echo ""
+
+    echo "MACHINE 10.11.2.118"
+    ssh 10.11.2.118 "docker ps"
+    echo ""
+
+    echo "MACHINE 10.11.3.118"
+    ssh 10.11.3.118 "docker ps"
+    echo ""
+    sleep 5
+done
